@@ -97,4 +97,4 @@ const Sidebar: React.FC = () => {
   );
 };
 
-export default Sidebar;</parameter>
+export default Sidebar;

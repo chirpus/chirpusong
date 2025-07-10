@@ -161,4 +161,4 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   );
 };
 
-export default PostCard;</parameter>
+export default PostCard;

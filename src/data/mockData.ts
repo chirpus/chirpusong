@@ -121,4 +121,4 @@ export const constellations: Constellation[] = [
   { name: 'Builders', pulses: 34500, dimension: 'Engineering', energy: 78900 },
   { name: 'Dreamers', pulses: 15600, dimension: 'Philosophy', energy: 45600 },
   { name: 'Explorers', pulses: 28900, dimension: 'Discovery', energy: 56700 }
-];</parameter>
+];
