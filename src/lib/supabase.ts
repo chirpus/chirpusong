@@ -12,17 +12,29 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Auth helpers
 export const auth = {
+  signInWithGoogle: async () => {
+    return await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}`
+      }
+    });
+  },
+  
   signUp: async (email: string, password: string, userData: any) => {
+    // Keep for fallback, but primarily use Google
     return await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: userData
+        data: userData,
+        emailRedirectTo: `${window.location.origin}`
       }
     });
   },
   
   signIn: async (email: string, password: string) => {
+    // Keep for fallback, but primarily use Google
     return await supabase.auth.signInWithPassword({
       email,
       password
@@ -36,6 +48,35 @@ export const auth = {
   getCurrentUser: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     return user;
+  },
+
+  createProfileFromAuth: async (user: any) => {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!existingProfile) {
+      // Extract info from Google OAuth
+      const username = user.email?.split('@')[0] || `user_${user.id.slice(0, 8)}`;
+      const displayName = user.user_metadata?.full_name || user.user_metadata?.name || username;
+      const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+
+      return await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          username: username,
+          display_name: displayName,
+          avatar_url: avatarUrl,
+          email: user.email
+        })
+        .select()
+        .single();
+    }
+    
+    return { data: existingProfile };
   }
 };
 

@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   profile: any | null;
   loading: boolean;
+  signInWithGoogle: () => Promise<any>;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
@@ -43,6 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
+          // Create profile if it doesn't exist (for Google OAuth users)
+          if (event === 'SIGNED_IN') {
+            await auth.createProfileFromAuth(session.user);
+          }
           await loadProfile(session.user.id);
         } else {
           setProfile(null);
@@ -64,6 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
+  };
+
+  const signInWithGoogle = async () => {
+    const result = await auth.signInWithGoogle();
+    return result;
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
@@ -92,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     profile,
     loading,
+    signInWithGoogle,
     signUp,
     signIn,
     signOut,
