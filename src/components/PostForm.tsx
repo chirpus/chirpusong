@@ -33,7 +33,7 @@ const PostForm: React.FC<PostFormProps> = ({ onPostCreated }) => {
     { type: 'cosmic' as const, label: 'Thoughts', color: 'bg-purple-500', icon: '🧠' }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() || !user) return;
 
