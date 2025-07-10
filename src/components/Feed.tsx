@@ -1,9 +1,31 @@
 import React from 'react';
 import PostForm from './PostForm';
 import PostCard from './PostCard';
-import { mockPulses } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../lib/supabase';
 
 const Feed: React.FC = () => {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const loadPosts = async () => {
+    try {
+      const { data, error } = await db.getPosts();
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex-1 max-w-3xl border-r border-gray-200">
       {/* Header */}
@@ -19,13 +41,24 @@ const Feed: React.FC = () => {
       </div>
 
       {/* Post Form */}
-      <PostForm />
+      <PostForm onPostCreated={loadPosts} />
 
       {/* Posts Feed */}
       <div>
-        {mockPulses.map((pulse) => (
-          <PostCard key={pulse.id} post={pulse} />
-        ))}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <p className="text-lg font-medium">No posts yet</p>
+            <p className="text-sm">Be the first to share something!</p>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <PostCard key={post.id} post={post} onUpdate={loadPosts} />
+          ))
+        )}
       </div>
     </main>
   );

@@ -1,30 +1,41 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Zap, Sparkles } from 'lucide-react';
-import { Pulse } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../lib/supabase';
+import CommentsModal from './Comments/CommentsModal';
 
 interface PostCardProps {
-  post: Pulse;
+  post: any;
+  onUpdate?: () => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
-  const [isResonating, setIsResonating] = useState(post.isResonating);
-  const [isAmplified, setIsAmplified] = useState(post.isAmplified);
-  const [resonance, setResonance] = useState(post.resonance);
-  const [amplify, setAmplify] = useState(post.amplify);
+const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [showComments, setShowComments] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
-  const handleResonance = () => {
-    setIsResonating(!isResonating);
-    setResonance(isResonating ? resonance - 1 : resonance + 1);
+  const handleLike = async () => {
+    if (!user || loading) return;
+    
+    setLoading(true);
+    try {
+      await db.toggleLike(post.id);
+      setIsLiked(!isLiked);
+      setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAmplify = () => {
-    setIsAmplified(!isAmplified);
-    setAmplify(isAmplified ? amplify - 1 : amplify + 1);
-  };
-
-  const formatTimeAgo = (timestamp: Date) => {
+  const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
+    const time = new Date(timestamp);
+    const diff = now.getTime() - time.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor(diff / (1000 * 60));
     
@@ -64,27 +75,27 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <div className="flex space-x-4">
         <div className="relative">
           <img
-            src={post.user.avatar}
-            alt={post.user.displayName}
+            src={post.profiles?.avatar_url || `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400`}
+            alt={post.profiles?.display_name}
             className="w-12 h-12 rounded-full object-cover"
           />
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-            <span className="text-xs font-bold text-white">{post.user.level}</span>
+            <span className="text-xs font-bold text-white">{post.profiles?.level || 1}</span>
           </div>
         </div>
         
         <div className="flex-1">
           {/* User Info */}
           <div className="flex items-center space-x-2 mb-2">
-            <h3 className="font-semibold text-gray-900">{post.user.displayName}</h3>
-            {post.user.verified && (
+            <h3 className="font-semibold text-gray-900">{post.profiles?.display_name}</h3>
+            {post.profiles?.verified && (
               <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                 <Sparkles className="w-2 h-2 text-white" />
               </div>
             )}
-            <span className="text-gray-500">@{post.user.username}</span>
+            <span className="text-gray-500">@{post.profiles?.username}</span>
             <span className="text-gray-400">·</span>
-            <span className="text-gray-500 text-sm">{formatTimeAgo(post.timestamp)}</span>
+            <span className="text-gray-500 text-sm">{formatTimeAgo(post.created_at)}</span>
             <button className="ml-auto p-1 rounded-full hover:bg-gray-100 transition-colors duration-200">
               <MoreHorizontal className="w-4 h-4 text-gray-500" />
             </button>
@@ -105,10 +116,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <p className="text-gray-900 leading-relaxed">{post.content}</p>
             
             {/* Media */}
-            {post.media && post.media.length > 0 && (
+            {post.media_urls && post.media_urls.length > 0 && (
               <div className="mt-4 rounded-xl overflow-hidden">
                 <img
-                  src={post.media[0]}
+                  src={post.media_urls[0]}
                   alt="Pulse media"
                   className="w-full h-64 object-cover"
                 />
@@ -118,35 +129,36 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
           {/* Actions */}
           <div className="flex items-center justify-between max-w-md">
-            <button className="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors duration-200 group">
+            <button 
+              onClick={() => setShowComments(true)}
+              className="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors duration-200 group"
+            >
               <div className="p-2 rounded-full hover:bg-blue-50 group-hover:scale-110 transition-all duration-200">
                 <MessageCircle className="w-5 h-5" />
               </div>
-              <span className="text-sm">{post.echoes}</span>
+              <span className="text-sm">{post.comments_count || 0}</span>
             </button>
             
             <button
-              onClick={handleAmplify}
-              className={`flex items-center space-x-2 transition-all duration-200 group ${
-                isAmplified ? 'text-green-600' : 'text-gray-500 hover:text-green-600'
-              }`}
+              className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-colors duration-200 group"
             >
               <div className="p-2 rounded-full hover:bg-green-50 group-hover:scale-110 transition-all duration-200">
                 <Repeat2 className="w-5 h-5" />
               </div>
-              <span className="text-sm">{amplify}</span>
+              <span className="text-sm">{post.reposts_count || 0}</span>
             </button>
             
             <button
-              onClick={handleResonance}
+              onClick={handleLike}
+              disabled={!user || loading}
               className={`flex items-center space-x-2 transition-all duration-200 group ${
-                isResonating ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
+                isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
               }`}
             >
               <div className="p-2 rounded-full hover:bg-red-50 group-hover:scale-110 transition-all duration-200">
-                <Heart className={`w-5 h-5 ${isResonating ? 'fill-current' : ''}`} />
+                <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
               </div>
-              <span className="text-sm">{resonance}</span>
+              <span className="text-sm">{likesCount}</span>
             </button>
             
             <button className="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors duration-200 group">
@@ -157,6 +169,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </div>
       </div>
+      
+      <CommentsModal
+        isOpen={showComments}
+        onClose={() => setShowComments(false)}
+        post={post}
+      />
     </article>
   );
 };

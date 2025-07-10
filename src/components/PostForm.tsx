@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { Image, Sparkles, Palette, Zap, Atom, Compass, Send, Plus, X } from 'lucide-react';
-import { currentUser } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../lib/supabase';
 
-const PostForm: React.FC = () => {
+interface PostFormProps {
+  onPostCreated?: () => void;
+}
+
+const PostForm: React.FC<PostFormProps> = ({ onPostCreated }) => {
   const [content, setContent] = useState('');
   const [selectedMood, setSelectedMood] = useState<'spark' | 'flow' | 'storm' | 'calm' | 'burst'>('calm');
   const [selectedDimension, setSelectedDimension] = useState<'personal' | 'creative' | 'tech' | 'nature' | 'cosmic'>('personal');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [loading, setLoading] = useState(false);
   const maxLength = 500;
+  const { user, profile } = useAuth();
 
   const moods = [
     { type: 'spark' as const, icon: Zap, color: 'bg-yellow-500', label: 'Excited', emoji: '⚡' },
@@ -28,15 +35,27 @@ const PostForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (content.trim()) {
-      console.log('New pulse:', { content, mood: selectedMood, dimension: selectedDimension });
+    if (!content.trim() || !user) return;
+
+    setLoading(true);
+    try {
+      await db.createPost(content.trim(), selectedMood, selectedDimension);
       setContent('');
       setIsExpanded(false);
+      onPostCreated?.();
+    } catch (error) {
+      console.error('Error creating post:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const selectedMoodData = moods.find(m => m.type === selectedMood);
   const selectedDimensionData = dimensions.find(d => d.type === selectedDimension);
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-200 p-6">
@@ -48,8 +67,8 @@ const PostForm: React.FC = () => {
             className="flex items-center space-x-4 p-4 bg-white rounded-2xl shadow-sm border border-blue-100 cursor-text hover:shadow-md transition-all duration-300"
           >
             <img
-              src={currentUser.avatar}
-              alt={currentUser.displayName}
+              src={profile?.avatar_url || `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400`}
+              alt={profile?.display_name}
               className="w-10 h-10 rounded-full object-cover"
             />
             <div className="flex-1">
@@ -71,13 +90,13 @@ const PostForm: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <img
-                    src={currentUser.avatar}
-                    alt={currentUser.displayName}
+                    src={profile?.avatar_url || `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400`}
+                    alt={profile?.display_name}
                     className="w-12 h-12 rounded-full object-cover ring-3 ring-white/30"
                   />
                   <div>
-                    <h3 className="text-white font-semibold">{currentUser.displayName}</h3>
-                    <p className="text-blue-100 text-sm">Level {currentUser.level} • {currentUser.energy} Energy</p>
+                    <h3 className="text-white font-semibold">{profile?.display_name}</h3>
+                    <p className="text-blue-100 text-sm">Level {profile?.level} • {profile?.energy} Energy</p>
                   </div>
                 </div>
                 <button
@@ -214,11 +233,11 @@ const PostForm: React.FC = () => {
                 </div>
                 <button
                   type="submit"
-                  disabled={!content.trim() || content.length > maxLength}
+                  disabled={!content.trim() || content.length > maxLength || loading}
                   className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full font-medium hover:from-blue-600 hover:to-indigo-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Share</span>
+                  <span>{loading ? 'Sharing...' : 'Share'}</span>
                 </button>
               </div>
             </div>

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Home, Compass, Zap, Sparkles, User, Telescope, Atom } from 'lucide-react';
-import { currentUser } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 
 const Sidebar: React.FC = () => {
+  const { user, profile } = useAuth();
+
   const navItems = [
     { icon: Home, label: 'Home', active: true, color: 'bg-blue-500' },
     { icon: Compass, label: 'Explore', active: false, color: 'bg-green-500' },
@@ -37,61 +39,63 @@ const Sidebar: React.FC = () => {
         </nav>
 
         {/* User Profile Card */}
-        <div className="mt-8 bg-gray-50 rounded-2xl p-6 border border-gray-100">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.displayName}
-                className="w-14 h-14 rounded-xl object-cover ring-2 ring-blue-200"
-              />
-              <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-xs font-bold text-white">{currentUser.level}</span>
+        {user && profile && (
+          <div className="mt-8 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <img
+                  src={profile.avatar_url || `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400`}
+                  alt={profile.display_name}
+                  className="w-14 h-14 rounded-xl object-cover ring-2 ring-blue-200"
+                />
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">{profile.level}</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-semibold text-gray-900">{profile.display_name}</h3>
+                  {profile.verified && (
+                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                      <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">@{profile.username}</p>
+                <p className="text-xs text-blue-600 mt-1">{profile.constellation}</p>
               </div>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-semibold text-gray-900">{currentUser.displayName}</h3>
-                {currentUser.verified && (
-                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-3 h-3 text-white" />
-                  </div>
-                )}
+            
+            {/* Energy Bar */}
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-gray-500 mb-2">
+                <span>Energy</span>
+                <span>{profile.energy}/1000</span>
               </div>
-              <p className="text-sm text-gray-500">@{currentUser.username}</p>
-              <p className="text-xs text-blue-600 mt-1">{currentUser.constellation}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${(profile.energy / 1000) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            <div className="mt-4 flex justify-between text-sm">
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">{profile.following_count}</p>
+                <p className="text-xs text-gray-500">Following</p>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">{profile.followers_count}</p>
+                <p className="text-xs text-gray-500">Followers</p>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-blue-600">Level {profile.level}</p>
+                <p className="text-xs text-gray-500">Nexus Rank</p>
+              </div>
             </div>
           </div>
-          
-          {/* Energy Bar */}
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-gray-500 mb-2">
-              <span>Energy</span>
-              <span>{currentUser.energy}/1000</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${(currentUser.energy / 1000) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex justify-between text-sm">
-            <div className="text-center">
-              <p className="font-semibold text-gray-900">{currentUser.following}</p>
-              <p className="text-xs text-gray-500">Following</p>
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-gray-900">{currentUser.followers}</p>
-              <p className="text-xs text-gray-500">Followers</p>
-            </div>
-            <div className="text-center">
-              <p className="font-semibold text-blue-600">Level {currentUser.level}</p>
-              <p className="text-xs text-gray-500">Nexus Rank</p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </aside>
   );
