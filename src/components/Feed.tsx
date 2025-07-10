@@ -31,4 +31,4 @@ const Feed: React.FC = () => {
   );
 };
 
-export default Feed;</parameter>
+export default Feed;

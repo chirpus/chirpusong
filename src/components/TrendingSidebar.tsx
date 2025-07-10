@@ -132,4 +132,4 @@ const TrendingSidebar: React.FC = () => {
   );
 };
 
-export default TrendingSidebar;</parameter>
+export default TrendingSidebar;
